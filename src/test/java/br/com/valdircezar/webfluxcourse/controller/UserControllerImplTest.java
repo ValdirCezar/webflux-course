@@ -3,6 +3,7 @@ package br.com.valdircezar.webfluxcourse.controller;
 import br.com.valdircezar.webfluxcourse.entity.User;
 import br.com.valdircezar.webfluxcourse.mapper.UserMapper;
 import br.com.valdircezar.webfluxcourse.model.request.UserRequest;
+import br.com.valdircezar.webfluxcourse.model.response.UserResponse;
 import br.com.valdircezar.webfluxcourse.service.UserService;
 import com.mongodb.reactivestreams.client.MongoClient;
 import org.junit.jupiter.api.DisplayName;
@@ -14,8 +15,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Mono;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -59,7 +62,7 @@ class UserControllerImplTest {
     @Test
     @DisplayName("Test endpoint save with bad request")
     void testSaveWithBadRequest() {
-        final var request = new UserRequest("Valdir", "valdir@mail.com", "123");
+        final var request = new UserRequest(" Valdir", "valdir@mail.com", "123");
 
         webTestClient.post().uri("/users")
                 .contentType(APPLICATION_JSON)
@@ -77,7 +80,23 @@ class UserControllerImplTest {
     }
 
     @Test
-    void findById() {
+    @DisplayName("Test find by id endpoint with success")
+    void testFindByIdWithSuccess() {
+        final var id = "123456";
+        final var userResponse = new UserResponse(id, "Valdir", "valdir@mail.com", "123");
+
+        when(service.findById(anyString())).thenReturn(Mono.just(User.builder().build()));
+        when(mapper.toResponse(any(User.class))).thenReturn(userResponse);
+
+        webTestClient.get().uri("/users/" + id)
+                .accept(APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(id)
+                .jsonPath("$.name").isEqualTo("Valdir")
+                .jsonPath("$.email").isEqualTo("valdir@mail.com")
+                .jsonPath("$.password").isEqualTo("123");
     }
 
     @Test
